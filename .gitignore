@@ -1,3 +1,11 @@
-/results
+# Folders
 
+/results
 /mri_images
+/tumor_classify
+
+# Files
+
+xception_model_best.keras
+xception_model_mri_4classes_v2.keras
+requirements.txt

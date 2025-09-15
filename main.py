@@ -189,6 +189,7 @@ opt = tf.keras.optimizers.Adam(learning_rate=1e-4)
 model.compile(optimizer=opt, loss='categorical_crossentropy', metrics=['accuracy', tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
 
 print(base_model.output_shape)
+print([l.name for l in base_model.layers if 'block14' in l.name])
 
 model.summary()
 
@@ -215,10 +216,11 @@ early_stopping = tf.keras.callbacks.EarlyStopping(
     verbose=1,
 )
 checkpoint_cb = tf.keras.callbacks.ModelCheckpoint(
-    filepath="./xception_model_best.keras",
+    filepath="./xception_weights_best.weights.h5",
     monitor='val_loss',
     save_best_only=True,
-    save_weights_only=False,
+    save_weights_only=True,
+    mode='min', # Use max when monitoring accuracy
     verbose=1
 )
 
@@ -237,7 +239,7 @@ history = model.fit(
 test_loss, test_acc, test_prec, test_rec = model.evaluate(test_ds)
 print(f"\n🔎 Teste — Loss: {test_loss:.4f}, Acc: {test_acc:.4f}, Precision: {test_prec:.4f}, Recall: {test_rec:.4f}")
 
-model.save('./xception_model_mri_4classes_v2.keras')
+model.save('./xception_weights_last.keras')
 
 def plot_confusion_matrix(cm, classes, normalize=True, title='Confusion matrix', cmap=plt.cm.Blues):
     """

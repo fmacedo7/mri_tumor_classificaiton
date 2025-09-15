@@ -8,21 +8,23 @@ from tensorflow.keras.models import load_model
 CLASSES = ['glioma', 'meningioma', 'pituitary', 'healthy']
 IMG_SIZE = (224, 224)
 MODEL_PATH = './xception_model_last.keras'
+last_conv_layer_name = 'block14_sepconv2_act'
 
-print(f"TensorFlow version: {tf.__version__}")
 
-# carregar modelo completo
+# Carregar o modelo completo uma vez
 model = tf.keras.models.load_model(MODEL_PATH)
 model.summary()
+print(f"TensorFlow version: {tf.__version__}")
 
-def make_gradcam_heatmap(img_array, model, last_conv_layer_name="block14_sepconv2_act", pred_index=None):
-    # Encontra o modelo Xception dentro do seu modelo sequencial
-    base_model_inside = model.get_layer("xception")
+# Refatorar a função para que ela separe as lógicas
+def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None):
+    # Acessa o modelo Xception que está dentro do modelo sequencial
+    xception_model = model.get_layer("xception")
     
-    # Cria um novo modelo que mapeia a entrada para os outputs da última camada convolucional
+    # Cria o modelo para Grad-CAM
     grad_model = tf.keras.models.Model(
-        inputs=base_model_inside.input,
-        outputs=[base_model_inside.get_layer(last_conv_layer_name).output, base_model_inside.output]
+        inputs=xception_model.input,
+        outputs=[xception_model.get_layer(last_conv_layer_name).output, xception_model.output]
     )
     
     with tf.GradientTape() as tape:
@@ -66,11 +68,18 @@ def sample_images(data_dir='mri_images', classes=CLASSES, per_class=3):
     random.shuffle(paths)
     return paths
 
-# pegar algumas imagens
-image_paths = sample_images('mri_images', CLASSES, per_class=3)[:9]
-
+# Pega algumas imagens e exibe
+# image_paths = sample_images('mri_images', CLASSES, per_class=3)[:9]
+image_paths = ['mri_images/glioma/0000.jpg', 
+               'mri_images/glioma/0031.jpg', 
+               'mri_images/healthy/0044.jpg',
+               'mri_images/healthy/1994.jpg',
+               'mri_images/meningioma/1637.jpg',
+               'mri_images/meningioma/1642.jpg',
+               'mri_images/pituitary/0013.jpg',
+               'mri_images/pituitary/1733.jpg',
+               'mri_images/pituitary/1720.jpg']
 plt.figure(figsize=(12,12))
-last_conv_layer_name = 'block14_sepconv2_act'
 
 for i, p in enumerate(image_paths):
     img = tf.keras.utils.load_img(p, target_size=IMG_SIZE)
@@ -80,7 +89,8 @@ for i, p in enumerate(image_paths):
     preds = model.predict(arr, verbose=0)
     pred_class = np.argmax(preds[0])
     pred_label = CLASSES[pred_class]
-
+    
+    # Chama a função make_gradcam_heatmap
     heatmap = make_gradcam_heatmap(arr, model, last_conv_layer_name)
     sup_img = display_gradcam(p, heatmap)
 
